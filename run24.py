@@ -3,7 +3,7 @@ from sim import make_houses, weather, occupancy, body_distance
 from sim24 import simulate24, learn24, DEFAULT24
 
 N = 10; LIFE = 3000; SHORT = 20
-SEED = int(sys.argv[1])
+SEED = int(sys.argv[1]) if len(sys.argv) > 1 else 7
 rng = np.random.default_rng(SEED)
 houses = make_houses(N, rng)
 env = []
