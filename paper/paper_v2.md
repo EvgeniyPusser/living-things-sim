@@ -10,6 +10,8 @@ A newly commissioned building, machine or network has no operating history of it
 
 We describe a measurement platform. An individual object lives once, without replay. Losses accumulate as they occur. A target object starts either from a generic default (target-only), from the record of one source applied without adaptation (single-source, zero-shot), from an aggregate over many sources which we call a fund (multi-source), or from that fund followed by its own short adaptation (fine-tuned). The protocol was applied in three domains — a synthetic population of buildings, measured electricity records of 40 real non-residential buildings, and six benchmark water distribution networks — and to five candidate inherited objects.
 
+One section stands apart because its instrument is not the author's alone. A reduced three-capacity thermal model, driven by measured weather for nineteen locations and by an air-source heat pump whose capacity as well as its efficiency falls with outdoor temperature, was calibrated against BuilDa [15], the open Modelica generator released with the ThermBuild dataset [16], on eight buildings and then checked on four more in another city and another month: heat demand agrees to 2 %, mean indoor temperature to 0.2 K. On that instrument a crisis is located by the data — the coldest 72-hour window of the target's own year, with available heating capacity halved — and the deficit follows from standard sizing practice rather than from a chosen parameter. Measured inside that window and not over the year, the fund beats self-acquisition in every fifth of the population and for 89–94 % of targets across three populations; in the worst-affected fifth, degree-hours below the comfort norm fall from 116 to 46, and the lowest indoor temperature reached rises from 16.8 °C to 18.5 °C. The cost is stated as well: the fund spends 10–14 % more electricity over the season. What is inherited there is not economy but a reserve, and the reason a single object does not acquire that reserve is explicit — a reserve is paid for daily and repays once in several years, so an object optimising what it can observe is right to remove it, while a population that has met many different failures is right to keep it. Fine-tuning the fund on ordinary days destroys the effect, which inverts the ordering found elsewhere in the paper.
+
 The paper is written as the chain of experiments in the order they were performed. It includes three defects of the instrument found after the experiments were finished, what each defect changed, and one reported figure that a controlled repetition did not support and which is withdrawn. Five results hold across domains. First, zero-shot transfer of a complete source representation is usually worse than what the target can obtain for itself, even from two weeks of its own history: negative transfer is the rule rather than the exception. Second, source selection by similarity of building characteristics does not work: no measure of similarity we tried predicts whether transfer helps; an apparent correlation of +0.21 in the first experiment turned out to be an artefact of the cost function and fell to +0.05 once the artefact was removed. Third, what transfers is the arrangement of observation, not the values: the rule for placing sensors transfers where the detection rule does not. Fourth, the quality a source achieved does not pass to its targets; across two populations the slope of target gain on source quality was −2.12 and −0.38, negative in sign and undetermined in size. Fifth, most of the negative transfer we measured is an artefact of feature representation rather than of transfer itself: a simple target-relative normalisation of the same records raises the share of objects helped from 81–84 % to 99 %.
 
 A separate measurement bounds all of these. For each object we compute an oracle baseline — the best any schedule method could achieve, and find that four objects in five have almost nothing to gain while one in five has 11–41 %. What an object gains from the fund is closely related to how much it had to gain, with a correlation of +0.91, so the fund can be read as a ranking of which objects are worth attention — a question no object can answer about itself. We end with what the platform does not measure, including a measurement of its own range which shows that range to be narrow.
@@ -21,6 +23,8 @@ Technical objects that adapt during their operating life are now common. Buildin
 We begin with buildings, because buildings are the best documented of these objects. Public hourly records exist for thousands of them. Benchmark networks ship with the simulation software. The same questions arise for machines, factories and vehicles, and the platform is not specific to buildings, but the material is here.
 
 Transfer between buildings is an active field and not a new idea. Xu et al. [1] transfer the strategy part of a reinforcement-learning controller and retrain a building-specific physical part locally, obtaining stable control from the first day. A critical review of transfer learning in buildings [2] treats negative transfer as a recognised phenomenon, with its causes and mitigations an open subject, and identifies the selection of source buildings as an unsolved part of the problem. A dataset of 15 808 building models was released in 2025 specifically for transfer research in building control [3].
+
+A recent line of work is closer still. Raisch et al. show that pretraining one model on 450 simulated buildings and fine-tuning it on thirty days of a target reduces prediction error by 42 % against fine-tuning single-source models [15, 17] — the same shape as the result we report for schedules, reached independently on a different inherited object and a different measure. The same group then shows that prediction accuracy is not a proxy for control performance, and that what makes pretraining pay is **excitation**: source data in which the control inputs were deliberately varied enough to reveal the system's response [18]. Excitation has to be bought, by perturbing a real building at the occupants' expense. The result of §8 can be read as a claim about that price: a population of buildings, each having met a different failure, supplies excitation that nobody paid for deliberately.
 
 Two threads in that literature bear directly on what follows. Negative transfer — a source that leaves the target worse off than no source at all — is recognised but not solved. And source selection — deciding which building to transfer from — is open. Most of what we report is a measurement of those two.
 
@@ -186,7 +190,83 @@ The last row matters. Climate extremes are handled, because climate is part of t
 
 Eight cases. The sign is worth acting on. The number is not a result and should not be quoted as one.
 
-## 8. Step 6: feature representation, or the language in which records are written
+## 8. A calibrated instrument, real weather, and a real crisis
+
+Every experiment so far ran on a thermal model written by the author, driven by a sine-plus-noise weather series, with a single lumped capacity and a one-hour explicit step. Sections 7 and 11 suggested that inheritance matters where events are rare, but on such an instrument the rare events are the author's own invention, and the objection that the extremes were manufactured to produce the result is a fair one.
+
+This section repeats the question on a rebuilt instrument, calibrated against a published independent simulator, with weather taken from measured records and with a crisis that the data rather than the author locates.
+
+### 8.1 The instrument and its calibration
+
+The thermal model now carries three capacities — air and furniture, envelope, internal partitions — connected by conductances derived from surface areas and U-values. Within each control interval the system is linear, so the state is advanced by the matrix exponential rather than by an explicit step: the integration-step artefact reported in §11 is removed by construction rather than reduced. Weather is read from `.mos` files for nineteen locations between Rome and Chicago. Solar gain is computed on four vertical facades from the true solar position at the file's latitude, with beam and diffuse components separate. Heating is supplied by an air-source heat pump whose coefficient of performance and whose **available capacity** both fall with outdoor temperature; nominal power is sized by the rule used in BuilDa's own code, following DIN 18599-2 including the 0.6 ground-coupling factor of DIN 4108-6, at a design temperature taken as the 0.4th percentile of the location's record.
+
+BuilDa [15], the generator released with the ThermBuild dataset [16], is a Modelica multi-zone model solved by CVODE and validated against two instrumented twin houses. It is open, and we used it as the reference. Eight buildings spanning U-values of 0.2–0.665 W/m²K, window U-values of 1.0–3.2 W/m²K and two or three storeys were simulated for thirty days of January in Munich, in BuilDa and in the reduced model, with identical geometry, fabric, controller and weather. A single pair of correction factors on the envelope and window-plus-ventilation conductances was fitted to those eight. The factors were then applied unchanged to four buildings not in the fitting set, in a different city and a different month.
+
+| | Fitting set: Munich, January | Held out: Berlin, days 45–75 |
+|---|---|---|
+| buildings | 8 | 4 |
+| heat demand, ours / BuilDa, before correction | 1.20 (spread 0.089) | 1.23 (spread 0.008) |
+| heat demand, ours / BuilDa, after correction | 1.016 (spread 0.054) | 1.020 (spread 0.012) |
+| worst single building after correction | 12.1 % | 3.5 % |
+| difference in mean indoor temperature | ≤ 0.20 K | ≤ 0.23 K |
+Table 11. The reduced model against an independent Modelica model of the same buildings.
+
+The reduced model runs a heating season in under a second for three hundred buildings at once, about four thousand times faster than the reference. The two are complementary: the fast model performs the hundreds of thousands of season evaluations a search protocol needs, and the reference model states what those evaluations are worth.
+
+### 8.2 Two defects of the author's own cost function, found here
+
+With a 0.5 K tolerance below the comfort norm, sources learned to hold the indoor temperature at exactly the edge of the tolerance. Penalty zero, energy minimal, reserve zero. This is an exploit of the measure rather than a skill: any disturbance immediately pushes such a building below the norm. The tolerance was removed and the penalty made proportional to the shortfall below 21 °C.
+
+Second, the weighted sum of energy and discomfort used throughout this paper assigns one degree-hour the weight of eight kilowatt-hours. Percentages of that sum are therefore statements about comfort wearing the dress of money. In this section the two components are reported separately and no combined figure is quoted.
+
+### 8.3 What a crisis is, declared before the runs
+
+The heating season is taken as 1 October to 30 April, so that a newly commissioned building meets its first winter with an autumn behind it. Two conditions define the event, and both are located by the record rather than chosen:
+
+- the 72-hour window whose mean outdoor temperature is the lowest in that building's own year, found by search over its weather file;
+- within that window, available heating capacity halved.
+
+Because nominal power is sized at the 0.4th percentile and heat-pump capacity falls with outdoor temperature, a building in its own coldest window can already deliver only 88–95 % of what it needs before the failure is applied. The deficit is a consequence of standard sizing practice and of a documented property of the equipment, not of a parameter set to produce it.
+
+The primary measure is degree-hours below 21 °C **within the window**, reported in absolute units. The window is 1.4 % of the season and holds a third of the season's discomfort, which is why measuring over the year divides the effect away. Adaptation by the target is permitted only on hours preceding the window: a target allowed to adapt during the event would be living it twice.
+
+### 8.4 Result
+
+Three populations, twenty-four to forty sources and one hundred to three hundred targets, nineteen cities, thirty-two city-years. Targets and sources draw their years from disjoint halves of the pool, so a target's crisis is never a source's crisis.
+
+| Fifth of targets, by how badly they fared alone | target-only | single-source | fund | fund, fine-tuned |
+|---|---|---|---|---|
+| worst fifth | 115.8 | 53.2 | 46.2 | 68.5 |
+| second | 82.3 | 36.0 | 29.9 | 54.0 |
+| middle | 60.1 | 29.0 | 22.8 | 45.0 |
+| fourth | 41.8 | 18.0 | 13.4 | 36.5 |
+| best fifth | 17.7 | 14.2 | 9.9 | 31.5 |
+Table 12. Degree-hours below 21 °C during the 72-hour event. Three hundred targets, mean within each fifth.
+
+The fund is better than target-only in every fifth, for 94 % of targets, and the two smaller populations give 92 % and 89 %. Hours spent below the norm within the event fall from 30 of 72 to 16, and the lowest indoor temperature reached rises from 16.8 °C to 18.5 °C, medians over targets.
+
+| | seed 101, n=100 | seed 202, n=100 | seed 303, n=300 |
+|---|---|---|---|
+| worst fifth, target-only | 115.5 | 126.1 | 115.8 |
+| worst fifth, fund | 40.4 | 67.6 | 46.2 |
+| worst fifth, fund fine-tuned | 60.6 | 85.9 | 68.5 |
+| targets helped by the fund | 92 % | 89 % | 94 % |
+| season electricity, fund vs target-only | +9.9 % | +9.7 % | +13.7 % |
+Table 13. The same experiment on three independent populations.
+
+### 8.5 What the fund contains, and what it costs
+
+The sources' learned schedules have a clear median. Against the generic default of 21 °C occupied, 18 °C setback, one hour of preheating, 0.5 K deadband and gain 0.35, the fund holds 23.4 °C occupied, applies **no setback at all**, narrows the deadband to 0.34 K and doubles the gain. Across forty sources the setback depth ranges from 8.6 K to zero; the median selects those that abandoned it.
+
+Neither element of that posture is new to practice, and we claim no novelty for the rule itself. Compensating the supply temperature against outdoor temperature — the heating curve — is standard equipment in heat-pump controllers [19], and it is present in our own model as the parameter `heatingCurve_steepness` taken from BuilDa's configuration. Advice not to apply night setback to a heat pump in cold weather is routine installer guidance [20]. What the measurement contributes is not the rule but its provenance: the platform was told nothing about heat pumps, setbacks or installer practice, and the rule emerged as the median of forty objects that had each survived a different failure. A measuring instrument that independently reproduces an answer the field already holds is entitled to more confidence where the field holds no answer — which is the case for the second question below, how much reserve and at what price.
+
+The cost of that posture is measurable and it is not small. Over the season the fund uses 2 987 kWh against 2 626 kWh for target-only, a 13.7 % increase, and accumulates 69 degree-hours of discomfort against 157.
+
+This is the result the series has been missing. Inheritance here does not buy economy; it buys a reserve, at 10–14 % of the annual electricity bill. And the reason a single object does not acquire that reserve for itself is now explicit rather than assumed: a reserve is paid for every day and repays once in several years. An object optimising the loss it can observe is right to remove it. A population of objects, each having met a different failure, is right to keep it. What is inherited is not a setting but the population's verdict that an apparently wasteful behaviour is correct.
+
+The fine-tuned condition, best in most earlier sections, is here the third of four. Fine-tuning takes place on ordinary days, and ordinary days reward exactly the removal of reserve: 46.2 degree-hours become 68.5. Adaptation to normal operation erases the property the fund was taken for. We report this as it came; it inverts the ordering of §5 and §6 and we have no account of it beyond the mechanism just stated.
+
+## 9. Step 6: feature representation, or the language in which records are written
 
 All transfers so far moved a schedule expressed in degrees. A schedule in degrees is meaningful only relative to a particular building. The same 18 °C night setpoint is a mild setback in one building and an unreachable target in another. In the vocabulary of the field this is a feature representation problem, and what follows is a simple form of domain adaptation: target-relative feature normalisation.
 
@@ -206,9 +286,17 @@ The median gain rises by about half. The decisive figure is the share of objects
 
 The same experiment measures the distance from each target to the nearest record in the fund. Gain falls as the distance grows, from +4.1 % to +1.8 % in degrees, and falls more gently in the dimensionless form, from +5.6 % to +3.6 %. A common language is needed exactly where no similar case exists.
 
-Records written by different objects are like two combs with different teeth missing. Nothing lines up until both are described in the same terms.
+### 9.1 A narrower statement, after §8
 
-## 9. Step 7: is quality heritable?
+The claim "representation dominates" is too broad, and §8 shows where it fails. There the fund was carried in five parameters and re-expressed in quantities relative to the target — setback depth, preheating in units of the target's own time constant, controller authority per unit of its own installed power — and the gain over the raw form was 46.2 against 49.1 degree-hours, inside the noise.
+
+Opening the earlier program explains the difference, and it is not subtle. In this section a record is **twenty-four hourly setpoints anchored to the source's own clock**. Sources differ in occupancy hour. Passing the twenty-four numbers unchanged shifts the whole schedule by the difference — the target heats while the building is empty and is cold when people arrive. The re-expression did not correct units; it corrected **alignment**, by re-anchoring the record to the target's own occupancy hour. In §8 the five parameters are already defined relative to each target's occupancy, so no misalignment exists to repair.
+
+The statement that survives is therefore conditional: **re-expression helps exactly where the record is anchored in the source's frame of reference, and does nothing where it is already in the target's.** That is narrower than "representation dominates" and it is testable on any new domain by asking one question of the record — whose frame is it written in.
+
+A second caution belongs here. The dimensionless quantities of §8 were chosen by the author: two of the five are near-forced, one depends on how thermal inertia is defined, one was invented, and one was left untransformed. A negative result from one hand-picked mapping is weak evidence that no mapping helps.
+
+## 10. Step 7: is quality heritable?
 
 Every experiment so far asked whether a fund helps. This one asks a different question. If a source tuned itself well, do its targets do better than the targets of a mediocre source?
 
@@ -230,7 +318,7 @@ This explains why a fund works and a single source does not. If quality were her
 
 For the general question, this is the working answer of the series: what is inherited is not what a parent acquired, but what many have survived.
 
-## 10. What the instrument got wrong about itself
+## 11. What the instrument got wrong about itself
 
 Three defects were found after the experiments were complete. Two were repaired. One is declared and stands.
 
@@ -254,7 +342,7 @@ The defect therefore stands, with its effect on the comparisons now measured rat
 
 The three are of different kinds. The third was an error in the measuring device and produced a false positive, the correlation of +0.21. The second is a known approximation carried too far. The first was a wrong belief about the device, held by the author, and stated twice in earlier drafts.
 
-## 11. How much is there to take at all
+## 12. How much is there to take at all
 
 A separate measurement bounds everything above: an oracle baseline. For each building we searched for the cheapest schedule using 400 evaluations of its own year with full knowledge of that year in advance, and compared it with an untouched 21 °C schedule. No method that changes only the schedule can beat this number: not self-learning, not a fund, not an engineer.
 
@@ -273,7 +361,7 @@ The schedule found for that building was checked on three other years of the sam
 
 Two things follow. Arguing about inheritance without this number is arguing about nothing, because for most buildings every condition is equivalent by construction. And the useful product of a fund may not be a better schedule at all. It may be the answer to which buildings have anything to gain — a question an individual building cannot answer about itself, since to know that 41 % is available one must have seen buildings where 2 % is available.
 
-### 11.1 The fund as a way of finding those buildings
+### 12.1 The fund as a way of finding those buildings
 
 The second of these was tested directly. Fifteen sources in each of two populations contribute records; the median of those records is the fund. Twenty targets, none of them in the fund, each receive the fund and forty of their own evaluations. Their gain is compared with their own ceiling, measured separately.
 
@@ -296,7 +384,7 @@ The same measurement calibrates the platform against reality, and the result is 
 
 The platform compares conditions of transfer honestly against each other. It understates by a large factor how much is available in a real building.
 
-## 12. What the steps say together
+## 13. What the steps say together
 
 - An inherited representation used unchanged is the worst of the conditions tested, in every domain.
 - A single source is unreliable and cannot be chosen in advance by any obvious measure of similarity, including physical parameters, floor area, year and declared use.
@@ -305,36 +393,46 @@ The platform compares conditions of transfer honestly against each other. It und
 - Inheritance from a single source becomes actively harmful where the event is rare: in an ordinary year such a source helps about half of targets, and when rare conditions are present it helps none, at both integration steps (§4). Where many events are needed before an object can judge at all, an inherited rule is the only source available (§6.2).
 - Quantity of records converts into value only through relations between conditions and settings, and those relations must be paid for in records. The first hundred are worth more than the next hundred.
 - A record must carry the state of the object, not only its nameplate, or accumulation amplifies harm.
-- Representation dominates. The same records expressed relative to the target almost cease to do harm.
+- Representation matters where the record is anchored in the source's frame of reference: re-anchoring twenty-four hourly setpoints to the target's own occupancy hour raises the share helped from 83–84 % to 99 %. Where the record is already parameterised relative to the target, re-expression adds nothing (§9.1).
+- Where an event is both rare and severe, the ordering is unambiguous and holds in every fifth of the population: fund, then single source, then the fund fine-tuned, then self-acquisition (§8). Self-acquisition is the worst of the four, by a factor of two in the worst-affected fifth.
+- What inheritance buys there is a reserve, not economy, and it costs 10–14 % of the season's electricity. A reserve is paid for every day and repays once in several years, so an object optimising its own observable loss removes it correctly; only a population that has met many different failures keeps it correctly.
+- Adaptation to ordinary operation destroys inherited crisis readiness. The fund fine-tuned on pre-event hours is worse than the fund untouched, in all three populations.
 - What a fund gives an object is closely related to how much that object had to gain (correlation +0.91). A fund can therefore be used to rank objects by how much is available in them, which no object can determine about itself.
 
-For the general question the results give one working answer: what is worth inheriting is what is expensive to acquire again, written in terms that refer to the target rather than to the source.
+For the general question the results give one working answer, sharper than the one this series began with: what is worth inheriting is what an individual cannot rationally acquire for itself, because the lesson costs more than a single life can justify. Ordinary competence is not in that class — each object reaches it alone. Conduct during rare and expensive events is, and the form it takes is not a transferable setting but a population's verdict that an apparently wasteful behaviour is correct.
 
-## 13. Limitations
+## 14. Limitations
 
 - Three domains, two of them simulated. The measured domain contains no setpoints and no record of operator intervention, so the inherited object there is a predictive model rather than a policy.
+- The synthetic domain of §8 is checked against an independent Modelica model to within 2 % of heat demand and 0.2 K of mean indoor temperature, on twelve buildings in two cities. Sections 3–7 and 9–12 run on the earlier uncalibrated model and carry the limitations listed below; §8 does not.
+- The bodies of §8 are still generated by the author, from ranges taken from BuilDa's configuration. Calibration establishes that the physics agrees; it does not establish that the population is representative of a real stock.
+- The crisis of §8 combines a real cold extreme with a failure whose severity — capacity halved for 72 hours — is a choice. The timing and the weather are taken from the record; the depth of the failure is not.
+- The heat-pump capacity derating is a linear fit to typical published behaviour, not a manufacturer's curve for a specific unit.
+- Thirty-two city-years across nineteen locations is a wide climate range but a small number of independent years; several targets in a population share a year and therefore a cold window.
 - The range of the synthetic domain is narrow: a median of 2.5 % against 16 % measured in real re-commissioning. Orderings between conditions should be read; magnitudes should not be carried over to real buildings.
-- The one-hour integration step produces a temperature oscillation of several degrees in every run. Its effect was measured for §4, where the ordering of conditions is unchanged at ten minutes; the other experiments were not repeated at the finer step, so their magnitudes should not be relied on.
+- The one-hour integration step produces a temperature oscillation of several degrees in every run of §§3–7 and 9–12; in §8 it is removed by exact integration within each control interval. Its effect was measured for §4, where the ordering of conditions is unchanged at ten minutes; the other experiments were not repeated at the finer step, so their magnitudes should not be relied on.
 - Cost weights, the ranges of building parameters and the frequency of rare conditions are choices of the author. With different choices the magnitudes, though probably not the ordering, would change.
 - The rare-condition result for a damaged object rests on eight cases and must be repeated.
 - The heritability slope is negative in two populations but its magnitude differs fivefold; only the absence of a relation is established.
-- The ranking result of §11.1 rests on twenty targets in one synthetic domain and has not been tested on measured data.
+- The ranking result of §12.1 rests on twenty targets in one synthetic domain and has not been tested on measured data.
 - The platform measures one function — inheritance — in a framework that names several others: retention, restoration, selection, mutation. Their protocols are defined and not yet run.
 - Benchmark water networks are distribution systems, not the internal pipework of a single building. The mechanism carries over. The numbers do not.
 
-## 14. Reproducibility
+## 15. Reproducibility
 
-All results are produced by open code with fixed random seeds, and every table is written by the script that produces it. The measured data are public [4]. The water networks ship with WNTR [6]. Total computation is a few hours on an ordinary laptop.
+All results are produced by open code with fixed random seeds, and every table is written by the script that produces it. The calibration of §8.1 requires BuilDa [15], which is licensed GPL-3.0; our code drives its compiled FMU through an interface and contains none of its source, so it is distributed under its own terms. The measured data are public [4]. The water networks ship with WNTR [6]. Total computation is a few hours on an ordinary laptop.
 
 The experiments were designed by the author. The code and the manuscript were prepared with AI assistance (Claude, Anthropic). The questions, the protocol, the choice of what to measure, the decision of what to report, and the interpretation of the results are the author's. No AI system is an author, and the author takes full responsibility for the content.
 
-## 15. Where to begin
+## 16. Where to begin
 
 Three things would change the answers, in order of how much they would change them.
 
 Data with setpoints and a log of interventions. The measured domain here has meter readings and nothing else, which is why the inherited object had to be a model rather than a policy. Sources exist: instrumented reference buildings, and thermostat data donated by householders, of which one programme covers more than 200 000 homes [13].
 
-A ten-minute integration step, and everything re-run.
+Everything re-run on the calibrated instrument of §8. Sections 3–7 and 9–12 stand on a model whose magnitudes are now known to have been wrong by tens of per cent; §8 shows the repair is affordable, and there is no reason left to leave the rest uncalibrated.
+
+A curve rather than a sign. Section 8 shows that inheritance pays where the event is rare and severe, and §7 shows it does not pay in an ordinary year. Between those two lies a quantity: how rare and how expensive an event must be before a population's verdict is worth more than an individual's optimisation. Varying the frequency and the depth of the failure would produce that curve, and it would turn the claim of this paper from a direction into a number.
 
 An object with a described structure of regulation — a set of observed quantities, rules of response, priorities — rather than a vector of numbers. Every experiment here transferred values. The results say values are the wrong thing to transfer. The next experiment should transfer the arrangement, and the first task is to describe an object that has one.
 
@@ -367,3 +465,15 @@ An object with a described structure of regulation — a set of observed quantit
 [13] Donate Your Data. ecobee. Anonymised thermostat records from more than 200 000 homes, available to researchers on application.
 
 [14] Luo, J., Miras, K., Tomczak, J., Eiben, A. E. Enhancing robot evolution through Lamarckian principles. Scientific Reports 13, 21109 (2023). doi:10.1038/s41598-023-48338-4.
+
+[15] Raisch, F., Krug, T., Koch, F., Kollmannsberger, S., Lang, W. GenTL: A General Transfer Learning Model for Building Thermal Dynamics. Proc. 16th ACM Int. Conf. on Future and Sustainable Energy Systems (e-Energy '25), 2025. doi:10.1145/3679240.3734589; arXiv:2501.13703. Code: github.com/fabianraisch/BuilDa (GPL-3.0).
+
+[16] Raisch, F. et al. Real-world and simulated thermal data from 960 residential multi-zone buildings in Central Europe. arXiv:2606.01994. Data: Fordatis, fordatis.fraunhofer.de/handle/fordatis/486 (CC-BY-SA 4.0).
+
+[17] Raisch, F. et al. Adapting to change: transfer learning, continual learning and seasonal memory for building thermal models.
+
+[18] Koch, F., Krug, T. et al. BuilDyn: Excitation-Driven Data Generation for Building Thermal Dynamics Modeling and Control. arXiv:2605.29849. Package: pypi.org/project/buildyn (MIT).
+
+[19] Weather compensation control for heat pumps and boilers. Manufacturer and industry guidance, e.g. Danfoss electronic controllers; Energy Saving Trust, Heat Pump Installers Toolkit, "Weather compensation and other controls".
+
+[20] Industry guidance on night setback with air-source heat pumps in cold weather, e.g. consumer advisories published by heat-pump installers, 2025–2026.
