@@ -81,10 +81,14 @@ code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px;
 .theme{border:1px solid var(--line);background:var(--panel);color:var(--ink2);
   border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
 @media (max-width:640px){ .wrap{padding:18px 16px 48px} h1{font-size:20px} .tile .v{font-size:22px} }
+.lt-nav{display:flex;gap:16px;align-items:center;font-size:13px;margin:0 0 14px}.lt-nav a{color:var(--ink2);text-decoration:none}.lt-nav a:hover{color:var(--s1)}
 </style>
 </head>
 <body data-palette="#2a78d6,#eb6834">
 <div class="wrap">
+<nav class="lt-nav" aria-label="Navigation"><a id="back-link" href="#" hidden>← Назад</a><a href="./bench.html" lang="en">English</a></nav>
+<script>/* the Back link appears only when the page was opened from another page, e.g. the Egregor Cloud portal */
+(function(){var b=document.getElementById("back-link");if(document.referrer&&history.length>1){b.hidden=false;b.addEventListener("click",function(e){e.preventDefault();history.back();});}})();</script>
 
 <div class="top">
   <div>

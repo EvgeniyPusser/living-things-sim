@@ -2,6 +2,9 @@
 import re, os, json
 
 PAIRS = [
+ # navigation bar (Back + language switch)
+ ("<a id=\"back-link\" href=\"#\" hidden>← Назад</a><a href=\"./bench.html\" lang=\"en\">English</a>",
+  "<a id=\"back-link\" href=\"#\" hidden>← Back</a><a href=\"./stend.html\" lang=\"ru\">Русский</a>"),
  # заголовок и введение
  ("Тепловой стенд: что даёт унаследованный опыт в аварии",
   "Thermal bench: what inherited experience is worth in a failure"),
